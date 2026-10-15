@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="接龙助手">
+<title>广航接龙助手</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(165deg,#dbeafe,#f1f5f9 50%,#fef9c7);min-height:100vh;
+  display:flex;justify-content:center;padding:28px 16px;color:#0f172a}
+.card{width:100%;max-width:520px;background:#fff;border-radius:18px;padding:26px 24px;
+  box-shadow:0 10px 34px rgba(15,23,42,.09);height:fit-content}
+h1{font-size:21px;letter-spacing:.5px}
+.sub{color:#64748b;font-size:13px;margin-top:6px;line-height:1.7}
+.seg{display:flex;background:#f1f5f9;border-radius:10px;padding:3px;margin:18px 0 14px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;padding:9px 6px;font-size:14px;border-radius:8px;
+  cursor:pointer;color:#475569;transition:.15s;font-family:inherit}
+.seg button.on{background:#2563eb;color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(37,99,235,.35)}
+label{font-size:13px;font-weight:600;color:#334155;display:block;margin-bottom:6px}
+textarea{width:100%;min-height:88px;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;
+  font-size:16px;font-family:inherit;resize:vertical;outline:none;transition:border .15s}
+textarea:focus{border-color:#2563eb}
+.status{font-size:12.5px;color:#64748b;margin-top:8px;line-height:1.6;min-height:20px}
+.status.ok{color:#059669}
+.status.err{color:#dc2626}
+.entry{margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0}
+.entry .lab{font-size:11.5px;color:#64748b;background:#f8fafc;padding:6px 12px;
+  border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.entry .lab .name{font-weight:600;color:#475569}
+.entry .lab .hint{color:#94a3b8;flex-shrink:0}
+.entry .lab .hint.ok{color:#059669;font-weight:600}
+.entry .lab .hint.err{color:#dc2626;font-weight:600}
+.entry textarea.body{display:block;width:100%;border:0;outline:none;resize:none;overflow:hidden;
+  background:#0f172a;color:#f8fafc;padding:14px 16px;font-size:18px;font-weight:600;
+  line-height:1.7;font-family:inherit;cursor:pointer;-webkit-user-select:text;user-select:text}
+.entry:active textarea.body{background:#1e293b}
+.tmpl-box{display:block;width:100%;margin-top:8px;border:1.5px solid #e2e8f0;border-radius:10px;
+  padding:10px;font-size:12px;font-family:inherit;resize:vertical;color:#475569;background:#f8fafc}
+.btns{display:flex;gap:10px;margin-top:14px}
+.btn{border:0;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:600;cursor:pointer;
+  transition:.15s;font-family:inherit}
+.btn.ghost{background:#f1f5f9;color:#475569}
+.btn.ghost:hover{background:#e2e8f0}
+.more{display:none;width:100%;margin-top:10px;background:none;border:1.5px dashed #cbd5e1;color:#64748b;
+  border-radius:10px;padding:9px;font-size:13px;cursor:pointer;font-family:inherit}
+.more:hover{border-color:#2563eb;color:#2563eb}
+details{margin-top:16px}
+summary{font-size:13px;font-weight:600;color:#334155;cursor:pointer;user-select:none}
+.rules{margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rules span{font-size:11.5px;padding:6px 4px;border-radius:7px;background:#f8fafc;color:#64748b;
+  text-align:center;border:1px solid #e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rules span.prev{border-color:#93c5fd;color:#1d4ed8;background:#eff6ff}
+.rules span.next{border-color:#2563eb;background:#2563eb;color:#fff;font-weight:600}
+.tmpl-tip{font-size:12px;color:#94a3b8;margin-top:8px;line-height:1.7}
+.tip{margin-top:18px;padding-top:14px;border-top:1px dashed #e2e8f0;font-size:12px;color:#94a3b8;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🚢 广航接龙助手</h1>
+  <div class="sub">粘贴群里上一条 → 点卡片复制 → 去钉钉粘贴发送<br>一次生成两条：首选 + 备用（号被同事抢先时直接发备用条，军规已自动顺延）</div>
+
+  <div class="seg" id="seg">
+    <button class="on" data-mode="follow">跟接龙（序号 +1）</button>
+    <button data-mode="first">今天我是第一人（0001）</button>
+  </div>
+
+  <label for="input">上一条接龙内容</label>
+  <textarea id="input" placeholder="直接粘贴，例如：&#10;0148、0458 协同作战共荣辱"></textarea>
+  <div class="status" id="status">等输入…</div>
+
+  <div id="cards"></div>
+  <button class="more" id="moreBtn">＋ 再备一条</button>
+
+  <div class="btns">
+    <button class="btn ghost" id="clearBtn">清空重粘</button>
+  </div>
+
+  <details>
+    <summary>宏军九条对照（自动高亮：上一位 → 你的首选）</summary>
+    <div class="rules" id="rules"></div>
+  </details>
+
+  <details>
+    <summary>今天轮到我发起接龙？（复制发起模板）</summary>
+    <div class="tmpl-tip">发起人不写军规，把模板发到群里即可；之后第一位同事用"第一人模式"粘贴昨天链的 最后一条 就能生成 0001（军规固定从第一条「不认同也必执行」开始）。手机上一键复制失败时，长按下方模板文本手动复制。</div>
+    <textarea id="tmplBox" class="tmpl-box" readonly rows="16"></textarea>
+    <button class="btn ghost" id="tmplBtn" style="width:100%;margin-top:8px">复制发起模板</button>
+  </details>
+
+  <div class="tip">💡 电脑：双击打开本文件 → 粘贴 → 点卡片复制 → 去钉钉发送<br>
+  📱 手机：浏览器打开后「添加到主屏幕」，每天点开即用；点卡片若没自动复制，会自动全选，点系统弹出的「拷贝／复制」一下即可（也可直接长按文本复制）<br>
+  🥊 发送前瞄一眼群里：还是你粘的那条 → 发①；有人抢了你的号 → 发②；被抢两个号以上 → 回来粘最新一条重新生成<br>
+  ⏰ 接龙时间 6:00–9:00；两人撞号时，后发的人撤回修改重发</div>
+</div>
+
+<script>
+const RULES=[
+  "不认同也必执行",
+  "一切行动听指挥",
+  "协同作战共荣辱",
+  "讲求速度不拖延",
+  "面对任务不推诿",
+  "遇到问题不抱怨",
+  "强调结果不解释",
+  "有话直说不绕弯",
+  "勇往直前不放弃"
+];
+
+const TEMPLATE=`@所有人 #广航人接龙#
+团结一心，其利断金！！！每天清晨，广航的所有同事们要更加步调一致来接龙宏军军规啦，规则如下：
+
+⏰接龙时间：早上6:00-9:00（9:00后无需再继续接龙）
+
+‼ 发起人：任意人，只需发起，不需要写第一条军规。
+
+编号说明：第一个是指当天接龙的每个人的序号，第一位01，第二位02，如此类推，如两人同时发了，请后发的人撤回修改重发，以免影响后续接龙序号；第二个是指接龙的天数，第一天0001，第二天0002，如此类推。
+
+云宏价值观：担当 奋进 开放 创新
+
+广航价值观：创业 创收 创新（创业的心态做创收的事，再业务创新）
+
+宏军九条
+1.不认同也必执行
+2.一切行动听指挥
+3.协同作战共荣辱
+4.讲求速度不拖延
+5.面对任务不推诿
+6.遇到问题不抱怨
+7.强调结果不解释
+8.有话直说不绕弯
+9.勇往直前不放弃`;
+
+const MARKS=['①','②','③','④','⑤','⑥'];
+const pad4=n=>String(n).padStart(4,'0');
+const $=id=>document.getElementById(id);
+const inputEl=$('input'),statusEl=$('status'),cardsEl=$('cards'),moreBtn=$('moreBtn'),rulesEl=$('rules');
+
+// ctx：一次解析后的生成上下文；count：当前生成几条
+let ctx=null,count=2;
+
+RULES.forEach((r,i)=>{
+  const s=document.createElement('span');
+  s.textContent=(i+1)+' '+r;
+  rulesEl.appendChild(s);
+});
+const chips=[...rulesEl.children];
+
+function setStatus(msg,cls){
+  statusEl.textContent=msg;
+  statusEl.className='status'+(cls?' '+cls:'');
+}
+function highlight(prev,next){
+  chips.forEach((c,i)=>{
+    c.className=i===prev?'prev':(i===next?'next':'');
+  });
+}
+function clearCards(){
+  cardsEl.innerHTML='';
+  moreBtn.style.display='none';
+  chips.forEach(c=>c.className='');
+}
+// 从粘贴文本里提取：序号、天数、军规序号
+// 数字只认 2~4 位的（忽略 1 位数字，避免把军规编号 "3." 当成序号）
+function parse(text){
+  const nums=(text.match(/\d+/g)||[]).filter(s=>s.length>=2&&s.length<=4);
+  let seq=null,day=null;
+  if(nums.length>=2){seq=+nums[0];day=+nums[1];}
+  else if(nums.length===1){seq=+nums[0];}
+  const ruleIdx=RULES.findIndex(r=>text.includes(r));
+  return{seq,day,ruleIdx};
+}
+function render(){
+  const raw=inputEl.value.trim();
+  count=2;
+  clearCards();
+  ctx=null;
+  if(!raw){setStatus('等输入…');return;}
+  if(/#广航人接龙#|宏军九条/.test(raw)){
+    setStatus('这看起来是接龙模板（含全部九条），请粘贴上一条接龙：序号、天数 + 一条军规','err');return;
+  }
+  const {seq,day,ruleIdx}=parse(raw);
+  const mode=document.querySelector('#seg .on').dataset.mode;
+  // 第一人模式的军规固定从第一条开始，不需要识别上一条的军规
+  if(mode==='follow'&&ruleIdx<0){
+    setStatus('没认出军规，请确认粘贴里包含上一条的军规原文','err');return;
+  }
+  highlight(ruleIdx,mode==='follow'?(ruleIdx+1)%9:0);
+  if(mode==='follow'){
+    if(seq==null){
+      setStatus('没认出序号，请完整粘贴上一条（如 0148、0458 协同作战共荣辱）','err');return;
+    }
+    ctx={firstNum:seq+1,dayStr:day==null?null:pad4(day),startRule:(ruleIdx+1)%9};
+    setStatus('上一位 '+pad4(seq)+(day!=null?'、'+pad4(day):'（天数没认出）')+'「'+RULES[ruleIdx]+'」→ 已生成首选 + 备用（号与军规均已顺延）','ok');
+  }else{
+    if(day==null){
+      setStatus('第一人模式要识别天数来做 +1，请粘贴昨天最后一条（含序号、天数）','err');return;
+    }
+    ctx={firstNum:1,dayStr:pad4(day+1),startRule:0};
+    setStatus('昨天天数 '+pad4(day)+' → 今天第一人：0001、'+pad4(day+1)+'，军规固定从第一条「'+RULES[0]+'」开始，已生成首选 + 备用','ok');
+  }
+  drawCards();
+}
+function drawCards(){
+  cardsEl.innerHTML='';
+  for(let i=0;i<count;i++){
+    const num=ctx.firstNum+i;
+    const rule=RULES[(ctx.startRule+i)%9];
+    const line1=ctx.dayStr==null?pad4(num):pad4(num)+'、'+ctx.dayStr;
+    addCard(i,line1+'\n'+rule);
+  }
+  moreBtn.style.display=count<MARKS.length?'block':'none';
+}
+function addCard(i,text){
+  const entry=document.createElement('div');
+  entry.className='entry';
+  const lab=document.createElement('div');
+  lab.className='lab';
+  const name=document.createElement('span');
+  name.className='name';
+  name.textContent=i===0?'① 首选 · 还没人接就发这条'
+    :(i===1?'② 备用 · 你的号被抢先就发这条'
+    :MARKS[i]+' 再备用');
+  const hint=document.createElement('span');
+  hint.className='hint';
+  hint.textContent='点击复制';
+  lab.append(name,hint);
+  // 结果放进只读文本框：手机上即使程序复制失败，也能长按全选手动复制
+  const body=document.createElement('textarea');
+  body.className='body';
+  body.readOnly=true;
+  body.rows=2;
+  body.value=text;
+  entry.append(lab,body);
+  cardsEl.appendChild(entry);
+  entry.onclick=async()=>{
+    // 关键：同步选中并复制，必须在点击手势的调用栈内完成，手机 webview 才放行
+    body.focus({preventScroll:true});
+    body.setSelectionRange(0,text.length);
+    let ok=false;
+    try{ok=document.execCommand('copy');}catch(_){}
+    if(!ok&&navigator.clipboard){
+      try{await navigator.clipboard.writeText(text);ok=true;}catch(_){}
+    }
+    if(ok){
+      body.setSelectionRange(0,0);
+      hint.textContent='已复制 ✓';
+      hint.className='hint ok';
+    }else{
+      // 文本已全选：iOS 点系统"拷贝"，安卓点工具条"复制"即可
+      hint.textContent='已全选·点“拷贝”';
+      hint.className='hint err';
+    }
+    setTimeout(()=>{hint.textContent='点击复制';hint.className='hint';},1600);
+  };
+}
+// 通用复制：同样先同步 execCommand（保住用户手势，兼容手机），失败再退回异步 Clipboard API
+async function copyText(t){
+  const ta=document.createElement('textarea');
+  ta.value=t;ta.setAttribute('readonly','');
+  ta.style.position='absolute';ta.style.top='0';ta.style.left='-9999px';
+  document.body.appendChild(ta);
+  ta.focus({preventScroll:true});ta.select();ta.setSelectionRange(0,t.length);
+  let ok=false;
+  try{ok=document.execCommand('copy');}catch(_){}
+  ta.remove();
+  if(!ok&&navigator.clipboard){
+    try{await navigator.clipboard.writeText(t);ok=true;}catch(_){}
+  }
+  return ok;
+}
+function flash(btn,ok){
+  const old=btn.textContent;
+  btn.textContent=ok?'已复制 ✓':'复制失败，请长按结果手动复制';
+  btn.classList.toggle('flash',ok);
+  setTimeout(()=>{btn.textContent=old;btn.classList.remove('flash');},1400);
+}
+moreBtn.onclick=()=>{
+  if(!ctx)return;
+  count++;
+  drawCards();
+};
+$('clearBtn').onclick=()=>{inputEl.value='';render();inputEl.focus();};
+$('tmplBox').value=TEMPLATE;
+$('tmplBtn').onclick=async()=>flash($('tmplBtn'),await copyText(TEMPLATE));
+document.querySelectorAll('#seg button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    render();
+  };
+});
+inputEl.addEventListener('input',render);
+if(window.matchMedia&&matchMedia('(pointer:fine)').matches)inputEl.focus();
+</script>
+</body>
+</html>
